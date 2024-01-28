@@ -1,42 +1,32 @@
-import argparse
-import multiprocessing as mp
-import time
-
-# Example dummy training function (replace with your actual training logic)
-def train(process_id):
-    print(f"Process {process_id}: Starting training...")
-    time.sleep(5)  # Simulate some work
-    print(f"Process {process_id}: Training complete.")
-
-
-def main_process():
-    parser = argparse.ArgumentParser(description='Train a model.')
-    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file.')
-    args = parser.parse_args()
-
-    # Load config (example)
-    print(f"Loading config from {args.config}")
-    # Replace this with your actual loading of the config
-
-    # Start training (this is a placeholder for your actual training loop)
-    train(mp.current_process().name)
+import torch
+import yaml
+from src.data.dataset import TextDataset
+from src.data.vocabulary import Vocabulary
+from src.models.model import get_model
+from src.training.trainer import Trainer
+import pickle
 
 def main():
-    processes = []
-    # Create 2 processes
-    for i in range(2):
-        p = mp.Process(name=f"Process-{i}", target=main_process)
-        processes.append(p)
-        p.start()
+    # Load configuration
+    with open('config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
 
-    # Wait for all processes to finish
-    for p in processes:
-        p.join()
+    # Load vocabulary
+    with open(config['vocab_path'], 'rb') as f:
+        vocab = pickle.load(f)
 
-    print("All training processes finished.")
+    # Create datasets
+    train_dataset = TextDataset(config['dataset_path'], vocab)
+    val_dataset = TextDataset(config['validation_dataset_path'], vocab)
 
+    # Get model
+    model = get_model(config['model_name'], len(vocab), config['embedding_dim'], config['hidden_dim'])
 
-if __name__ == "__main__":
-    # Check to see if it is a frozen module
-    mp.freeze_support()
+    # Create trainer
+    trainer = Trainer(model, train_dataset, val_dataset, config)
+
+    # Train the model
+    trainer.train(config['num_epochs'])
+
+if __name__ == '__main__':
     main()

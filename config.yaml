@@ -1,3 +1,10 @@
-epochs: 10
-batch_size: 32
+dataset_path: data/processed/train.csv
+validation_dataset_path: data/processed/valid.csv
+vocab_path: data/processed/vocab.pkl
+embedding_dim: 128
+hidden_dim: 256
+num_epochs: 10
 learning_rate: 0.001
+batch_size: 64
+model_name: BaseModel # Can be BaseModel or BiggerModel
+# Add other configurations as needed
