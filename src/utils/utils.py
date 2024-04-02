@@ -1,36 +1,14 @@
-```python
-# src/utils/utils.py
-import yaml
-import re
+'''Module containing utility functions.'''
 
-def load_config(config_path):
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
+import json
 
-def save_config(config, config_path):
-    with open(config_path, 'w') as f:
-        yaml.dump(config, f)
+def load_json(file_path):
+    """Loads a JSON file.
 
-
-def remove_special_characters(text):
-    # Remove special characters, punctuation, etc.
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    return text
-
-
-def convert_to_lowercase(text):
-    return text.lower()
-
-
-def remove_extra_whitespace(text):
-  # Remove multiple spaces to single space
-  text = re.sub(' +', ' ', text)
-  return text.strip()
-
-
-def normalize_text(text):
-    text = remove_special_characters(text)
-    text = convert_to_lowercase(text)
-    text = remove_extra_whitespace(text)
-    return text
-```
+    :param file_path: The path to the JSON file.
+    :type file_path: str
+    :return: The loaded JSON data.
+    :rtype: dict
+    """
+    with open(file_path, 'r') as f:
+        return json.load(f)

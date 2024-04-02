@@ -1,30 +1,20 @@
-```python
-# src/models/model.py
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+'''Module for defining the base model class.'''
 
-class SimpleModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_labels):
-        super(SimpleModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, num_labels)
+import torch.nn as nn
+
+class BaseModel(nn.Module):
+    """Base class for all models."
+
+    def __init__(self):
+        """Initializes the BaseModel.
+        """
+        super().__init__()
 
     def forward(self, x):
-        embedded = self.embedding(x)
-        lstm_out, _ = self.lstm(embedded)
-        # Use lstm_out[:, -1, :] to get the last time step's output
-        output = self.fc(lstm_out[:, -1, :])
-        return output
+        """Forward pass of the model.
 
-    def predict(self, x):
-        # A separate predict method for inference
-        self.eval()
-        with torch.no_grad():
-           embedded = self.embedding(x)
-           lstm_out, _ = self.lstm(embedded)
-           output = self.fc(lstm_out[:, -1, :])
-           probabilities = F.softmax(output, dim=1)
-        return probabilities
-```
+        :param x: The input tensor.
+        :type x: torch.Tensor
+        :raises NotImplementedError: If the forward method is not implemented in the subclass.
+        """
+        raise NotImplementedError

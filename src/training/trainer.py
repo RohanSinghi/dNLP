@@ -1,39 +1,38 @@
+'''Module for training models.
+'''
 import torch
-import torch.nn as nn
-from tqdm import tqdm
-from src.evaluation.evaluate import evaluate_and_log  # Import the evaluation function
+import torch.optim as optim
 
 class Trainer:
-    def __init__(self, model, optimizer, train_dataloader, val_dataloader, device, logger, epochs):
+    """A class for training models.
+
+    Attributes:
+        model (torch.nn.Module): The model to train.
+        optimizer (torch.optim.Optimizer): The optimizer to use.
+        criterion (torch.nn.Module): The loss function.
+    """
+    def __init__(self, model, learning_rate):
+        """Initializes a new Trainer instance.
+
+        :param model: The model to train.
+        :type model: torch.nn.Module
+        :param learning_rate: The learning rate.
+        :type learning_rate: float
+        """
         self.model = model
-        self.optimizer = optimizer
-        self.train_dataloader = train_dataloader
-        self.val_dataloader = val_dataloader
-        self.device = device
-        self.logger = logger
-        self.epochs = epochs
-        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        self.criterion = torch.nn.CrossEntropyLoss()
 
-    def train(self):
+    def train_epoch(self, data_loader):
+        """Trains the model for one epoch.
+
+        :param data_loader: The data loader.
+        :type data_loader: torch.utils.data.DataLoader
+        """
         self.model.train()
-        step = 0
-        for epoch in range(self.epochs):
-            print(f"Epoch {epoch+1}/{self.epochs}")
-            for batch in tqdm(self.train_dataloader, desc="Training"):
-                self.optimizer.zero_grad()
-                inputs = {k: v.to(self.device) for k, v in batch.items() if k != 'target'}
-                targets = batch['target'].to(self.device)
-
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, targets)
-                loss.backward()
-                self.optimizer.step()
-
-                self.logger.log({"train/loss": loss.item()}, step=step)
-                # Log the loss
-
-                step += 1
-
-            # Evaluate after each epoch
-            evaluate_and_log(self.model, self.val_dataloader, self.device, self.logger, step=step)
-            self.model.train()
+        for inputs, labels in data_loader:
+            self.optimizer.zero_grad()
+            outputs = self.model(inputs)
+            loss = self.criterion(outputs, labels)
+            loss.backward()
+            self.optimizer.step()

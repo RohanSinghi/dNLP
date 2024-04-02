@@ -1,31 +1,14 @@
-```python
-# src/text/text_preprocessing.py
-# This module is now deprecated, and its functionality has been moved to src/utils/utils.py
-# Consider removing this file in a future version.
+'''Module for text preprocessing functions.'''
 
 import re
 
+def clean_text(text):
+    """Cleans the input text by removing special characters and converting to lowercase.
 
-def remove_special_characters(text):
-    # Remove special characters, punctuation, etc.
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    return text
-
-
-def convert_to_lowercase(text):
+    :param text: The input text.
+    :type text: str
+    :return: The cleaned text.
+    :rtype: str
+    """
+    text = re.sub(r'[^\w\s]', '', text)
     return text.lower()
-
-
-def remove_extra_whitespace(text):
-  # Remove multiple spaces to single space
-  text = re.sub(' +', ' ', text)
-  return text.strip()
-
-
-
-def preprocess_text(text):
-  text = remove_special_characters(text)
-  text = convert_to_lowercase(text)
-  text = remove_extra_whitespace(text)
-  return text
-```
