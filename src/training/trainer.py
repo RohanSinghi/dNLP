@@ -1,70 +1,39 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from tqdm import tqdm
+from src.evaluation.evaluate import evaluate_and_log  # Import the evaluation function
 
 class Trainer:
-    def __init__(self, model, optimizer, criterion, device):
+    def __init__(self, model, optimizer, train_dataloader, val_dataloader, device, logger, epochs):
         self.model = model
         self.optimizer = optimizer
-        self.criterion = criterion
+        self.train_dataloader = train_dataloader
+        self.val_dataloader = val_dataloader
         self.device = device
+        self.logger = logger
+        self.epochs = epochs
+        self.criterion = nn.CrossEntropyLoss()
 
-    def train_epoch(self, dataloader: DataLoader, epoch_num: int):
+    def train(self):
         self.model.train()
-        total_loss = 0
-        for i, batch in enumerate(tqdm(dataloader, desc=f'Epoch {epoch_num}')):
-            # Move data to device
-            batch = {k: v.to(self.device) for k, v in batch.items()}
+        step = 0
+        for epoch in range(self.epochs):
+            print(f"Epoch {epoch+1}/{self.epochs}")
+            for batch in tqdm(self.train_dataloader, desc="Training"):
+                self.optimizer.zero_grad()
+                inputs = {k: v.to(self.device) for k, v in batch.items() if k != 'target'}
+                targets = batch['target'].to(self.device)
 
-            # Zero the gradients
-            self.optimizer.zero_grad()
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+                loss.backward()
+                self.optimizer.step()
 
-            # Forward pass
-            outputs = self.model(**batch)
+                self.logger.log({"train/loss": loss.item()}, step=step)
+                # Log the loss
 
-            # Calculate loss
-            loss = self.criterion(outputs, batch['labels'])
+                step += 1
 
-            # Backward pass
-            loss.backward()
-
-            # Update parameters
-            self.optimizer.step()
-
-            total_loss += loss.item()
-        return total_loss / len(dataloader)
-
-    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int, save_path: str = None):
-        best_val_loss = float('inf')
-
-        for epoch in range(1, num_epochs + 1):
-            train_loss = self.train_epoch(train_dataloader, epoch)
-            val_loss = self.evaluate(val_dataloader)
-
-            print(f'Epoch {epoch}: Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}')
-
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                print('Saving model...')
-                if save_path:
-                    self.model.save(save_path)
-
-
-    def evaluate(self, dataloader: DataLoader):
-        self.model.eval()
-        total_loss = 0
-        with torch.no_grad():
-            for i, batch in enumerate(tqdm(dataloader, desc='Evaluating')):
-                # Move data to device
-                batch = {k: v.to(self.device) for k, v in batch.items()}
-
-                # Forward pass
-                outputs = self.model(**batch)
-
-                # Calculate loss
-                loss = self.criterion(outputs, batch['labels'])
-
-                total_loss += loss.item()
-
-        return total_loss / len(dataloader)
+            # Evaluate after each epoch
+            evaluate_and_log(self.model, self.val_dataloader, self.device, self.logger, step=step)
+            self.model.train()
