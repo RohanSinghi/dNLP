@@ -1,38 +1,30 @@
+```python
+# src/models/model.py
 import torch
 import torch.nn as nn
-import os
+import torch.nn.functional as F
 
-class BaseModel(nn.Module):
-    def __init__(self):
-        super().__init__()
+class SimpleModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_labels):
+        super(SimpleModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, num_labels)
 
     def forward(self, x):
-        raise NotImplementedError
+        embedded = self.embedding(x)
+        lstm_out, _ = self.lstm(embedded)
+        # Use lstm_out[:, -1, :] to get the last time step's output
+        output = self.fc(lstm_out[:, -1, :])
+        return output
 
-    def save(self, path):
-        """Saves the model's state dictionary to the given path.
-
-        Args:
-            path (str): The path where the model should be saved.
-        """
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        torch.save(self.state_dict(), path)
-        print(f'Model saved to {path}')
-
-    @classmethod
-    def load(cls, path, *args, **kwargs):
-        """Loads a model from the given path.
-
-        Args:
-            path (str): The path from where the model should be loaded.
-            *args: Arguments passed to the model's constructor.
-            **kwargs: Keyword arguments passed to the model's constructor.
-
-        Returns:
-            BaseModel: A new instance of the model with the loaded state dictionary.
-        """
-        model = cls(*args, **kwargs)
-        model.load_state_dict(torch.load(path))
-        print(f'Model loaded from {path}')
-
-        return model
+    def predict(self, x):
+        # A separate predict method for inference
+        self.eval()
+        with torch.no_grad():
+           embedded = self.embedding(x)
+           lstm_out, _ = self.lstm(embedded)
+           output = self.fc(lstm_out[:, -1, :])
+           probabilities = F.softmax(output, dim=1)
+        return probabilities
+```

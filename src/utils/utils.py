@@ -1,14 +1,36 @@
-import logging
+```python
+# src/utils/utils.py
+import yaml
+import re
 
-def get_logger(name):
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
 
-    # Only add handler once to avoid duplicate logs
-    if not logger.hasHandlers():
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
+def save_config(config, config_path):
+    with open(config_path, 'w') as f:
+        yaml.dump(config, f)
 
-    return logger
+
+def remove_special_characters(text):
+    # Remove special characters, punctuation, etc.
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    return text
+
+
+def convert_to_lowercase(text):
+    return text.lower()
+
+
+def remove_extra_whitespace(text):
+  # Remove multiple spaces to single space
+  text = re.sub(' +', ' ', text)
+  return text.strip()
+
+
+def normalize_text(text):
+    text = remove_special_characters(text)
+    text = convert_to_lowercase(text)
+    text = remove_extra_whitespace(text)
+    return text
+```
