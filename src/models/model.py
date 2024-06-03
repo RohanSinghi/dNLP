@@ -1,18 +1,38 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import os
 
-class SimpleModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, output_size)
+class BaseModel(nn.Module):
+    def __init__(self):
+        super().__init__()
 
     def forward(self, x):
-        # Assuming your data is in a dictionary and the input is 'input_ids'
-        x = x['input_ids'] # Access input
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
+        raise NotImplementedError
+
+    def save(self, path):
+        """Saves the model's state dictionary to the given path.
+
+        Args:
+            path (str): The path where the model should be saved.
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        torch.save(self.state_dict(), path)
+        print(f'Model saved to {path}')
+
+    @classmethod
+    def load(cls, path, *args, **kwargs):
+        """Loads a model from the given path.
+
+        Args:
+            path (str): The path from where the model should be loaded.
+            *args: Arguments passed to the model's constructor.
+            **kwargs: Keyword arguments passed to the model's constructor.
+
+        Returns:
+            BaseModel: A new instance of the model with the loaded state dictionary.
+        """
+        model = cls(*args, **kwargs)
+        model.load_state_dict(torch.load(path))
+        print(f'Model loaded from {path}')
+
+        return model
