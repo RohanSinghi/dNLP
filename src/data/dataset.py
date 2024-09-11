@@ -1,52 +1,101 @@
-import torch
-from torch.utils.data import Dataset
-import os
+from torchtext.legacy import data
+from src.data.fields import TextField, LabelField
 
-class TextDataset(Dataset):
-    def __init__(self, data_path, text_preprocessing_func=None):
-        self.data_path = data_path
-        self.texts, self.labels = self.load_data()
-        self.text_preprocessing_func = text_preprocessing_func
-        if self.text_preprocessing_func:
-            self.texts = [self.text_preprocessing_func(text) for text in self.texts]
 
-    def __len__(self):
-        return len(self.texts)
+class NLPDataset(data.Dataset):
+    """Defines a base class for NLP datasets.
 
-    def __getitem__(self, idx):
-        text = self.texts[idx]
-        label = self.labels[idx]
-        return text, label
+    Attributes:
+        fields (dict[str, Field]): Dictionary mapping field names to Field objects.
+        examples (list[Example]): List of Example objects.
+    """
 
-    def load_data(self):
-        texts = []
-        labels = []
-        with open(self.data_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                # Assuming each line is "text\tlabel"
-                try:
-                    text, label = line.strip().split('\t')
-                    texts.append(text)
-                    labels.append(int(label))
-                except ValueError:
-                    print(f"Skipping line: {line.strip()} due to format error.")
-                    continue
+    def __init__(self, examples, fields, **kwargs):
+        """Initializes a NLPDataset object.
 
-        return texts, labels
+        Args:
+            examples (list[Example]): List of Example objects.
+            fields (dict[str, Field]): Dictionary mapping field names to Field objects.
+        """
+        super().__init__(examples, fields, **kwargs)
+
+    @classmethod
+    def splits(cls, fields, root='.data', train='train.txt', validation='val.txt', test='test.txt', **kwargs):
+        """Create train, validation, and test datasets given path."
+
+        train_data = None if train is None else cls(root=root, train=train, fields=fields, **kwargs)
+        val_data = None if validation is None else cls(root=root, validation=validation, fields=fields, **kwargs)
+        test_data = None if test is None else cls(root=root, test=test, fields=fields, **kwargs)
+        return tuple(d for d in (train_data, val_data, test_data) if d is not None)
+
+    @classmethod
+    def from_file(cls, path, format, fields, **kwargs):
+        """Create dataset from a file.
+
+        Args:
+            path (str): Path to the data file.
+            format (str|dict): Format of the data file.  If str, it should be one of 'csv', 'tsv', or 'json'.  If dict, it should be
+                a dictionary mapping field names to column indices.
+            fields (dict[str, Field]): Dictionary mapping field names to Field objects.
+        """
+        with open(path, encoding='utf-8') as f:
+            if isinstance(format, str):
+                if format == 'csv':
+                    import csv
+                    reader = csv.reader(f)
+                    header = next(reader)
+                    examples = []
+                    for row in reader:
+                        example = data.Example.fromlist([row[i] for i in range(len(row))], fields)
+                        examples.append(example)
+                elif format == 'tsv':
+                    import csv
+                    reader = csv.reader(f, delimiter='\t')
+                    header = next(reader)
+                    examples = []
+                    for row in reader:
+                        example = data.Example.fromlist([row[i] for i in range(len(row))], fields)
+                        examples.append(example)
+                elif format == 'json':
+                    import json
+                    data = json.load(f)
+                    examples = []
+                    for item in data:
+                        example = data.Example.fromdict(item, fields)
+                        examples.append(example)
+                else:
+                    raise ValueError("Invalid format: {}".format(format))
+            elif isinstance(format, dict):
+                examples = []
+                for line in f:
+                    items = line.strip().split()
+                    example = data.Example.fromlist([items[i] for i in format.values()], fields)
+                    examples.append(example)
+            else:
+                raise TypeError("format must be str or dict, not {}".format(type(format)))
+
+        return cls(examples, fields, **kwargs)
 
 
 if __name__ == '__main__':
-    # Create a dummy dataset file for testing purposes.
-    dummy_data = ["This is a positive example.\t1", "This is a negative example.\t0", "Another positive example.\t1"]
-    dummy_file_path = 'dummy_dataset.txt'
-    with open(dummy_file_path, 'w') as f:
-        f.write('\n'.join(dummy_data))
+    # Example usage of the custom Field classes
+    TEXT = TextField(tokenize='spacy', lower=True)
+    LABEL = LabelField(dtype=data.torch.float)
 
-    # Example usage
-    dataset = TextDataset(dummy_file_path)
-    print(f"Dataset size: {len(dataset)}")
-    text, label = dataset[0]
-    print(f"First example: Text: {text}, Label: {label}")
+    fields = {'text': ('text', TEXT), 'label': ('label', LABEL)}
 
-    # Cleanup the dummy file
-    os.remove(dummy_file_path)
+    # Create dummy data
+    examples = [
+        data.Example.fromlist(['This is a positive example.', '1'], fields),
+        data.Example.fromlist(['This is a negative example.', '0'], fields),
+        data.Example.fromlist(['Another positive one.', '1'], fields)
+    ]
+
+    # Create a dataset
+    dataset = NLPDataset(examples, fields)
+
+    # Print some information
+    print(f'Number of examples: {len(dataset)}')
+    print(f'Fields: {dataset.fields}')
+    print(f'Example 0 text: {dataset[0].text}')
+    print(f'Example 0 label: {dataset[0].label}')
