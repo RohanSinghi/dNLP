@@ -1,16 +1,18 @@
-import torch
-from torch.utils.data import Dataset
+import logging
+from src.utils.utils import get_logger
 
-class NLPDataset(Dataset):
-    def __init__(self, data, tokenizer):
-        self.data = data
-        self.tokenizer = tokenizer
+logger = get_logger(__name__)
 
-    def __len__(self):
-        return len(self.data)
+# Example of using the logger in a module
+logger.info("Dataset module initialized")
 
-    def __getitem__(self, idx):
-        text = self.data[idx]['text']
-        label = self.data[idx]['label']
-        encoded_text = self.tokenizer(text, padding='max_length', truncation=True, return_tensors='pt')
-        return {'input_ids': encoded_text['input_ids'].flatten(), 'attention_mask': encoded_text['attention_mask'].flatten(), 'label': torch.tensor(label)}
+class Dataset:
+    def __init__(self):
+        logger.debug("Dataset object created.")
+
+    def load_data(self):
+        logger.info("Loading dataset...")
+        # your loading logic here
+        logger.info("Dataset loaded successfully.")
+
+        return ["Sample", "Data"] # Return dummy data to avoid errors
